@@ -2,7 +2,7 @@ load("@prelude//cxx/preprocessor.bzl", "CPreprocessorInfo")
 
 bindgen_toolchain_attrs = {
     # The Rust bindgen CLI (bindgen-cli)
-    "bindgen": provider_field(RunInfo | None, default = None),
+    "bindgen": provider_field(RunInfo),
 }
 
 BindgenToolchainInfo = provider(fields = bindgen_toolchain_attrs)
@@ -40,11 +40,10 @@ def rust_bindgen_impl(ctx: AnalysisContext) -> list[Provider]:
     bindgen_cmd = cmd_args(
         ctx.attrs._bindgen_toolchain[BindgenToolchainInfo].bindgen,
         headers,
-        delimiter = " "
     )
 
     # -- Output options (managed by the rule) --
-    bindgen_cmd.add("-o", "\"$@\"")
+    bindgen_cmd.add("-o", bindings.as_output())
 
     # -- Enum style options --
     if ctx.attrs.default_enum_style:
@@ -321,17 +320,20 @@ def rust_bindgen_impl(ctx: AnalysisContext) -> list[Provider]:
             for preprocessor in preprocessors:
                 bindgen_cmd.add(preprocessor.args.args)
 
-    bindgen_cmd, _ = ctx.actions.write(
-        ctx.actions.declare_output("__bindgen.sh"),
-        [
-            "#!/usr/bin/env bash",
-            bindgen_cmd
-        ],
-        is_executable = True,
-        allow_args = True,
-    )
+    # bindgen_script, bindgen_args = ctx.actions.write(
+    #     ctx.actions.declare_output("__bindgen.sh"),
+    #     [
+    #         "#!/usr/bin/env bash",
+    #         bindgen_cmd
+    #     ],
+    #     is_executable = True,
+    #     allow_args = True,
+    # )
 
-    ctx.actions.run([bindgen_cmd, bindings.as_output()], category = "rust_bindgen")
+    ctx.actions.run(
+        bindgen_cmd,
+        category = "rust_bindgen"
+    )
 
     return [DefaultInfo(default_output = bindings)]
 
