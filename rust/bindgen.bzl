@@ -19,7 +19,7 @@ def _bindgen_toolchain_impl(
 bindgen_toolchain = rule(
     impl = _bindgen_toolchain_impl,
     attrs = {
-        "bindgen": attrs.option(attrs.dep(providers = [RunInfo]), default = None),
+        "bindgen": attrs.exec_dep(providers = [RunInfo]),
     },
     is_toolchain_rule = True,
 )
