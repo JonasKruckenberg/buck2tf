@@ -11,6 +11,7 @@ def _bindgen_toolchain_impl(
     ctx: AnalysisContext,
 ) -> list[Provider]:
     return [
+        DefaultInfo(),
         BindgenToolchainInfo(
             bindgen = ctx.attrs.bindgen[RunInfo]
         )
