@@ -38,7 +38,7 @@ def rust_bindgen_impl(ctx: AnalysisContext) -> list[Provider]:
 
     bindings = ctx.actions.declare_output("bindings.rs")
     bindgen_cmd = cmd_args(
-        ctx.attrs._rust_toolchain[BindgenToolchainInfo].bindgen,
+        ctx.attrs._bindgen_toolchain[BindgenToolchainInfo].bindgen,
         headers,
         delimiter = " "
     )
