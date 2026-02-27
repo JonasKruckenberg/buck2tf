@@ -40,6 +40,7 @@ def rust_bindgen_impl(ctx: AnalysisContext) -> list[Provider]:
     bindgen_cmd = cmd_args(
         ctx.attrs._bindgen_toolchain[BindgenToolchainInfo].bindgen,
         headers,
+        hidden = [ctx.attrs.headers]
     )
 
     # -- Output options (managed by the rule) --
