@@ -12,7 +12,7 @@ def _bindgen_toolchain_impl(
 ) -> list[Provider]:
     return [
         BindgenToolchainInfo(
-            bindgen = ctx.attrs.bindgen
+            bindgen = ctx.attrs.bindgen[RunInfo]
         )
     ]
 
