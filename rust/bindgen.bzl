@@ -20,7 +20,8 @@ bindgen_toolchain = rule(
     impl = _bindgen_toolchain_impl,
     attrs = {
         "bindgen": attrs.option(attrs.dep(providers = [RunInfo]), default = None),
-    }
+    },
+    is_toolchain_rule = True,
 )
 
 def rust_bindgen_impl(ctx: AnalysisContext) -> list[Provider]:
