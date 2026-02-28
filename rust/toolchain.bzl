@@ -1,9 +1,9 @@
-load("//manifests:targets.bzl", "TARGETS")
-load("//manifests:renames.bzl", renames_entries = "ENTRIES")
-load("//manifests:profiles.bzl", profiles_entries = "ENTRIES")
-load("//manifests/stable:all.bzl", stable_index = "INDEX")
-load("//manifests/beta:all.bzl", beta_index = "INDEX")
-load("//manifests/nightly:all.bzl", nightly_index = "INDEX")
+load("//rust/manifests:targets.bzl", "TARGETS")
+load("//rust/manifests:renames.bzl", renames_entries = "ENTRIES")
+load("//rust/manifests:profiles.bzl", profiles_entries = "ENTRIES")
+load("//rust/manifests/stable:all.bzl", stable_index = "INDEX")
+load("//rust/manifests/beta:all.bzl", beta_index = "INDEX")
+load("//rust/manifests/nightly:all.bzl", nightly_index = "INDEX")
 load("@prelude//rust:rust_toolchain.bzl", "PanicRuntime", "RustToolchainInfo")
 
 DIST_ROOT = "https://static.rust-lang.org/dist"
