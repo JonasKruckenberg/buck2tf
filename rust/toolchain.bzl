@@ -130,7 +130,9 @@ def _rust_toolchain_impl(
             compiler = sub_targets["rustc"][0],
             rustdoc = sub_targets["rustdoc"][0],
             clippy_driver = sub_targets["clippy"][0],
-            # miri_driver = sub_targets["miri"][0] if hasattr(sub_targets, "miri") else None,
+
+            miri_driver = sub_targets["miri"][0] if sub_targets.get("miri") else None,
+            miri_sysroot_path = sysroot,
 
             # "miri_sysroot_path": provider_field(Artifact | None, default = None),
             # "miri_flags": provider_field(list[typing.Any], default = []),

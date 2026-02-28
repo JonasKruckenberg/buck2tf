@@ -1,0 +1,18 @@
+rust_library(
+    name = "rust_lib",
+    srcs = ["lib.rs"],
+    crate_root = "lib.rs",
+    deps = [
+        "//tests/third-party:itoa",
+    ],
+    visibility = ["PUBLIC"],
+)
+
+rust_test(
+    name = "rust_lib_test",
+    srcs = ["lib.rs"],
+    crate_root = "lib.rs",
+    deps = [
+        "//tests/third-party:itoa",
+    ],
+)

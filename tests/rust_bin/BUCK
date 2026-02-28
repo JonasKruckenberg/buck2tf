@@ -1,0 +1,17 @@
+rust_binary(
+    name = "rust_bin",
+    srcs = ["main.rs"],
+    crate_root = "main.rs",
+    deps = [
+        "//rust_lib:rust_lib",
+    ],
+)
+
+rust_test(
+    name = "rust_bin_test",
+    srcs = ["main.rs"],
+    crate_root = "main.rs",
+    deps = [
+        "//rust_lib:rust_lib",
+    ],
+)
