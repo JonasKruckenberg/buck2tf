@@ -1,4 +1,4 @@
-name: Sync channels
+name: Sync Rust Channels
 on:
   schedule:
     # The nightly channel is usually updated at 01:00:00 UTC.
@@ -44,21 +44,21 @@ jobs:
         timeout-minutes: 5
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: ./scripts/fetch.py stable
+        run: ./rust/scripts/fetch.py stable
 
       - name: Sync beta channel
         if: github.event.schedule != '0 14-20 * * THU'
         timeout-minutes: 5
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: ./scripts/fetch.py beta
+        run: ./rust/scripts/fetch.py beta
 
       - name: Sync nightly channel
         if: github.event.schedule != '0 14-20 * * THU'
         timeout-minutes: 5
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: ./scripts/fetch.py nightly
+        run: ./rust/scripts/fetch.py nightly
 
       - name: Check and commit changes
         id: commit
@@ -66,7 +66,7 @@ jobs:
         run: |
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
-          git add manifests
+          git add rust/manifests
           git commit -m "manifest: update"
 
       - name: Print changed files
