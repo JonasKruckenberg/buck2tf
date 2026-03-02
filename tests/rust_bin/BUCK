@@ -3,7 +3,7 @@ rust_binary(
     srcs = ["main.rs"],
     crate_root = "main.rs",
     deps = [
-        "//rust_lib:rust_lib",
+        "//tests/rust_lib:rust_lib",
     ],
 )
 
@@ -12,6 +12,6 @@ rust_test(
     srcs = ["main.rs"],
     crate_root = "main.rs",
     deps = [
-        "//rust_lib:rust_lib",
+        "//tests/rust_lib:rust_lib",
     ],
 )
