@@ -74,9 +74,10 @@ def _rust_toolchain_impl(
         actual = manifest.renames.get(comp, comp)
         resolved_components.append(actual)
 
+    sysroot = ctx.actions.declare_output("sysroot", dir = True)
+    ctx.actions.symlinked_dir(sysroot, {})
 
     sub_targets = {}
-    sysroot_srcs = {}
     for component_name in resolved_components:
         pkg = manifest.pkgs.get(component_name, None)
         if pkg == None:
@@ -91,7 +92,8 @@ def _rust_toolchain_impl(
             ctx,
             component_name,
             target_info.url,
-            target_info.sha256
+            target_info.sha256,
+            sysroot
         )
 
         short_name = _SHORT_NAMES.get(component_name, component_name)
@@ -104,12 +106,6 @@ def _rust_toolchain_impl(
 
             parts = artifact_path.split("/")
             sub_targets[parts.pop()] = [RunInfo([artifact]), DefaultInfo(default_output = artifact)]
-
-        if component_name == "rust-std":
-            sysroot_srcs["lib"] = component.project("rust-std-{}/lib".format(ctx.attrs.rustc_target_triple))
-
-    sysroot_ident = "{}-{}-{}-sysroot".format(ctx.attrs._channel, ctx.attrs.rustc_target_triple, ctx.attrs._profile)
-    sysroot = ctx.actions.symlinked_dir(sysroot_ident, sysroot_srcs)
 
     return [
         DefaultInfo(
@@ -227,24 +223,23 @@ def _download_rust_component(
     component_name: str,
     url: str,
     sha256: str,
+    sysroot: Artifact
 ) -> Artifact:
     archive = ctx.actions.declare_output(f"{component_name}.tar.xz")
     ctx.actions.download_file(archive.as_output(), url, sha256 = sha256)
 
     # Extract — Rust tarballs contain a top-level directory
-    output = ctx.actions.declare_output(component_name, dir = True)
+    output = sysroot.project(component_name);
     script, _ = ctx.actions.write(
         f"unpack_{component_name}.sh",
         [
-            cmd_args(output, format = "mkdir -p {}"),
-            cmd_args(output, format = "cd {}"),
-            cmd_args("tar", "-xJf", archive, "--strip-components=1", delimiter = " ", relative_to = output),
+            cmd_args("tar", "-xJf", archive, "--strip-components=1", "-C", sysroot, output, delimiter = " ", relative_to = output),
         ],
         is_executable = True,
         allow_args = True,
     )
     ctx.actions.run(
-        cmd_args(["/bin/sh", script], hidden = [archive, output.as_output()]),
+        cmd_args(["/bin/sh", script], hidden = [archive]),
         category = "rust_component",
         identifier = component_name,
         local_only = True,
