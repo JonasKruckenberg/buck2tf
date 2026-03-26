@@ -32,6 +32,7 @@ load(':1.92.0.bzl', manifest_1_92_0 = 'MANIFEST')
 load(':1.93.0.bzl', manifest_1_93_0 = 'MANIFEST')
 load(':1.93.1.bzl', manifest_1_93_1 = 'MANIFEST')
 load(':1.94.0.bzl', manifest_1_94_0 = 'MANIFEST')
+load(':1.94.1.bzl', manifest_1_94_1 = 'MANIFEST')
 INDEX = struct(**{
 '1.71.0': manifest_1_71_0,
 '1.71.1': manifest_1_71_1,
@@ -67,5 +68,6 @@ INDEX = struct(**{
 '1.93.0': manifest_1_93_0,
 '1.93.1': manifest_1_93_1,
 '1.94.0': manifest_1_94_0,
-'latest': manifest_1_94_0,
+'1.94.1': manifest_1_94_1,
+'latest': manifest_1_94_1,
 })
