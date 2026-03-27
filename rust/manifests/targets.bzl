@@ -127,4 +127,6 @@ TARGETS = {
     '_125': 'aarch64-apple-watchos',
     '_126': 'aarch64-apple-watchos-sim',
     '_127': 'x86_64-unknown-linux-gnuasan',
+    '_128': 'x86_64-unknown-linux-gnumsan',
+    '_129': 'x86_64-unknown-linux-gnutsan',
 }
