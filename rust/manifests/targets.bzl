@@ -129,4 +129,9 @@ TARGETS = {
     '_127': 'x86_64-unknown-linux-gnuasan',
     '_128': 'x86_64-unknown-linux-gnumsan',
     '_129': 'x86_64-unknown-linux-gnutsan',
+    '_130': 'thumbv7a-none-eabi',
+    '_131': 'thumbv7a-none-eabihf',
+    '_132': 'thumbv7r-none-eabi',
+    '_133': 'thumbv7r-none-eabihf',
+    '_134': 'thumbv8r-none-eabihf',
 }
