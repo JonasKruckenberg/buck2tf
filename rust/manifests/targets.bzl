@@ -134,4 +134,5 @@ TARGETS = {
     '_132': 'thumbv7r-none-eabi',
     '_133': 'thumbv7r-none-eabihf',
     '_134': 'thumbv8r-none-eabihf',
+    '_135': 'aarch64-unknown-freebsd',
 }
