@@ -5,8 +5,28 @@ load("//rust/manifests/stable:all.bzl", stable_index = "INDEX")
 load("//rust/manifests/beta:all.bzl", beta_index = "INDEX")
 load("//rust/manifests/nightly:all.bzl", nightly_index = "INDEX")
 load("@prelude//rust:rust_toolchain.bzl", "PanicRuntime", "RustToolchainInfo")
+load("@prelude//os_lookup:defs.bzl", "OsLookup", "Os")
+load("@prelude//decls:common.bzl", "buck")
 
 DIST_ROOT = "https://static.rust-lang.org/dist"
+
+def os_lookup_to_rust_target(lookup: OsLookup) -> str:
+    _CPU = {
+        "arm64": "aarch64",
+        "riscv64": "riscv64gc",
+        "x86_64": "x86_64"
+    }
+
+    _OS = {
+        Os("linux"): "unknown-linux-gnu",
+        Os("macos"): "apple-darwin",
+        Os("windows"): "windows-msvc"
+    }
+
+    cpu = _CPU[lookup.cpu]
+    os = _OS[lookup.os]
+
+    return f"{cpu}-{os}"
 
 _DEFAULT_TRIPLE = select({
     "prelude//os:linux": select({
@@ -35,15 +55,12 @@ _DEFAULT_TRIPLE = select({
     }),
 })
 
-# Map from component name to the binary path inside the extracted tarball
 _COMPONENT_ARTIFACTS = {
-    "rustc": ["rustc/bin/rustc", "rustc/bin/rust-gdb", "rustc/bin/rust-gdbgui", "rustc/bin/rust-lldb", "rustc/bin/rustdoc"],
-    "cargo": ["cargo/bin/cargo", "cargo/etc/bash_completion.d/cargo", "cargo/share/doc/cargo"],
-    "clippy-preview": ["clippy-preview/bin/clippy-driver", "clippy-preview/share/doc/clippy"],
-    "rustfmt-preview": ["rustfmt-preview/bin/rustfmt"],
-    "miri-preview": ["miri-preview/bin/miri"],
-    "rust-analyzer-preview": ["rust-analyzer-preview/bin/rust-analyzer"],
-    "llvm-tools-preview": ["llvm-tools-preview/bin/llvm-objdump"],
+    "rustc": ["bin/rustc", "bin/rust-gdb", "bin/rust-gdbgui", "bin/rust-lldb", "bin/rustdoc"],
+    "clippy-preview": ["bin/clippy-driver"],
+    "rustfmt-preview": ["bin/rustfmt"],
+    "miri-preview": ["bin/miri"],
+    "rust-analyzer-preview": ["bin/rust-analyzer"],
 }
 
 # Friendly names for subtargets
@@ -63,53 +80,63 @@ def _rust_toolchain_impl(
 ) -> list[Provider]:
     manifest = _uncompress_manifest(ctx.attrs._channel, ctx.attrs._manifest)
 
-    # Look up which components this profile includes
+    exec_target_triple = os_lookup_to_rust_target(ctx.attrs._exec_os_type[OsLookup])
+    pprint(exec_target_triple)
+
+    # Step 1. enumerate all component names required by the profile for the exec target
     profile_components = manifest.profiles.get(ctx.attrs._profile, None)
     if profile_components == None:
         fail("Unknown profile '{}'. Available: {}".format(ctx.attrs._profile, manifest.profiles.keys()))
-
 
     resolved_components = []
     for comp in profile_components:
         actual = manifest.renames.get(comp, comp)
         resolved_components.append(actual)
 
-
-    sub_targets = {}
-    sysroot_srcs = {}
+    component_archives = []
     for component_name in resolved_components:
         pkg = manifest.pkgs.get(component_name, None)
         if pkg == None:
             continue
 
         # Try the specified target first, then wildcard "*"
-        target_info = pkg.get(ctx.attrs.rustc_target_triple, pkg.get("*", None))
+        target_info = pkg.get(exec_target_triple, pkg.get("*", None))
         if target_info == None:
             continue
 
-        component = _download_rust_component(
+        archive = _download_rust_component(
             ctx,
             component_name,
             target_info.url,
             target_info.sha256
         )
+        component_archives.append(archive)
 
-        short_name = _SHORT_NAMES.get(component_name, component_name)
-        sub_targets[short_name] = [DefaultInfo(default_output = component)]
+    if ctx.attrs.rustc_target_triple != exec_target_triple:
+        pkg = manifest.pkgs.get("rust-std")
 
-        artifacts = _COMPONENT_ARTIFACTS.get(component_name, [])
+        # Try the specified target first, then wildcard "*"
+        target_info = pkg.get(ctx.attrs.rustc_target_triple)
 
-        for artifact_path in artifacts:
-            artifact = component.project(artifact_path)
+        archive = _download_rust_component(
+            ctx,
+            "rust-std",
+            target_info.url,
+            target_info.sha256
+        )
+        component_archives.append(archive)
 
-            parts = artifact_path.split("/")
-            sub_targets[parts.pop()] = [RunInfo([artifact]), DefaultInfo(default_output = artifact)]
+    sysroot = _build_sysroot(ctx, component_archives)
 
-        if component_name == "rust-std":
-            sysroot_srcs["lib"] = component.project("rust-std-{}/lib".format(ctx.attrs.rustc_target_triple))
+    sub_targets = {}
+    for component_name in resolved_components:
+        component_artifacts = _COMPONENT_ARTIFACTS.get(component_name, [])
 
-    sysroot_ident = "{}-{}-{}-sysroot".format(ctx.attrs._channel, ctx.attrs.rustc_target_triple, ctx.attrs._profile)
-    sysroot = ctx.actions.symlinked_dir(sysroot_ident, sysroot_srcs)
+        for artifact_path in component_artifacts:
+            artifact = sysroot.project(artifact_path)
+            artifact_name = artifact_path.split("/").pop()
+            short_name = _SHORT_NAMES.get(artifact_name, artifact_name)
+            sub_targets[short_name] = [RunInfo(args = cmd_args(artifact, hidden = [sysroot])), DefaultInfo(default_output = artifact)]
 
     return [
         DefaultInfo(
@@ -183,6 +210,8 @@ _rust_toolchain = rule(
         "_channel": attrs.string(),
         "_profile": attrs.string(),
         "_manifest": attrs.any(),
+
+        "_exec_os_type": buck.exec_os_type_arg()
     },
     is_toolchain_rule = True,
 )
@@ -222,35 +251,39 @@ rust_toolchain = struct(
     nightly = _make_channel("nightly", nightly_index),
 )
 
+def _build_sysroot(
+    ctx: AnalysisContext,
+    component_archives: list[Artifact],
+) -> Artifact:
+    sysroot = ctx.actions.declare_output("sysroot", dir = True)
+
+    script, _ = ctx.actions.write(
+        f"build_sysroot.sh",
+        [
+            cmd_args(sysroot, format = "mkdir -p {}"),
+        ] + [
+            cmd_args("tar", "-xJf", archive, "--strip-components=2", "-C", sysroot, delimiter = " ") for archive in component_archives
+        ],
+        is_executable = True,
+        allow_args = True,
+    )
+    ctx.actions.run(
+        cmd_args(["/bin/sh", script], hidden = [sysroot.as_output()] + component_archives),
+        category = "rust_sysroot",
+    )
+
+    return sysroot
+
 def _download_rust_component(
     ctx: AnalysisContext,
     component_name: str,
     url: str,
     sha256: str,
 ) -> Artifact:
-    archive = ctx.actions.declare_output(f"{component_name}.tar.xz")
+    archive = ctx.actions.declare_output(f"{component_name}-{sha256}.tar.xz", )
     ctx.actions.download_file(archive.as_output(), url, sha256 = sha256)
 
-    # Extract — Rust tarballs contain a top-level directory
-    output = ctx.actions.declare_output(component_name, dir = True)
-    script, _ = ctx.actions.write(
-        f"unpack_{component_name}.sh",
-        [
-            cmd_args(output, format = "mkdir -p {}"),
-            cmd_args(output, format = "cd {}"),
-            cmd_args("tar", "-xJf", archive, "--strip-components=1", delimiter = " ", relative_to = output),
-        ],
-        is_executable = True,
-        allow_args = True,
-    )
-    ctx.actions.run(
-        cmd_args(["/bin/sh", script], hidden = [archive, output.as_output()]),
-        category = "rust_component",
-        identifier = component_name,
-        local_only = True,
-    )
-    return output
-
+    return archive
 
 def _uncompress_manifest(channel, manifest):
     version = manifest["v"]
