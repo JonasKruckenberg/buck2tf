@@ -216,6 +216,7 @@ load('2026/2026-07-27.bzl', manifest_2026_07_27 = 'MANIFEST')
 load('2026/2026-07-28.bzl', manifest_2026_07_28 = 'MANIFEST')
 load('2026/2026-07-29.bzl', manifest_2026_07_29 = 'MANIFEST')
 load('2026/2026-07-30.bzl', manifest_2026_07_30 = 'MANIFEST')
+load('2026/2026-07-31.bzl', manifest_2026_07_31 = 'MANIFEST')
 INDEX = struct(**{
 '2025-12-25': manifest_2025_12_25,
 '2025-12-26': manifest_2025_12_26,
@@ -435,5 +436,6 @@ INDEX = struct(**{
 '2026-07-28': manifest_2026_07_28,
 '2026-07-29': manifest_2026_07_29,
 '2026-07-30': manifest_2026_07_30,
-'latest': manifest_2026_07_30,
+'2026-07-31': manifest_2026_07_31,
+'latest': manifest_2026_07_31,
 })
