@@ -15,6 +15,7 @@ rust_toolchain.nightly.latest.complete(
     name = "rust",
     default_edition = "2024",
     visibility = ["PUBLIC"],
+    rustc_target_triple = "riscv64gc-unknown-linux-gnu"
 )
 
 system_python_bootstrap_toolchain(
