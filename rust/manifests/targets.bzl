@@ -137,4 +137,5 @@ TARGETS = {
     '_135': 'aarch64-unknown-freebsd',
     '_136': 'loongarch32-unknown-none',
     '_137': 'loongarch32-unknown-none-softfloat',
+    '_138': 'wasm32-wasip3',
 }
